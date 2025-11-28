@@ -12,7 +12,7 @@ load_dotenv()
 
 # --- 1. APP CONFIGURATION ---
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') 
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY') 
 DB_NAME = 'logbook.db'
 
 # --- 2. LOGIN MANAGER SETUP ---
