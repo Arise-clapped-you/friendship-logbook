@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Friendship Logbook - Campfire Login</title>
+    <style>
+        /* Import a cozy, readable font */
+        @import url('https://fonts.googleapis.com/css2?family=Cabin:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
+
+        /* General Body Styles - Starry Night Background */
+        body { 
+            font-family: 'Cabin', sans-serif; 
+            background-color: #000; /* Pure black for night sky */
+            margin: 0; 
+            overflow: hidden; /* Prevent scrollbars from embers */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* --- EMBER ANIMATION STYLES --- */
+        .ember-effect {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh; /* Set to 100vh to ensure full viewport height */
+            pointer-events: none;
+            overflow: hidden; 
+            z-index: 1; /* Keep it behind the login box */
+        }
+
+        .ember {
+            position: absolute;
+            bottom: 0px; /* Start position guaranteed at the bottom of the viewport */
+            /* Aggressive glow settings */
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 1) 0%, rgba(255, 0, 0, 0) 80%); 
+            border-radius: 50%;
+            opacity: 0; 
+            box-shadow: 0 0 10px var(--ember-color, #ffaa00); 
+            animation: floatUp var(--duration) linear forwards; /* Changed to 'linear' for predictable travel */
+            z-index: 2; /* Still below the login box, but above the background */
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: var(--max-opacity, 0.8);
+            }
+            90% {
+                opacity: var(--max-opacity, 0.8);
+            }
+            100% {
+                /* Target translation is outside the viewport */
+                transform: translateY(-105vh); 
+                opacity: 0;
+            }
+        }
+
+        /* --- LOGIN BOX STYLES - Cozy Campout Feel --- */
+        #login-box {
+            position: relative;
+            z-index: 10; /* Guarantee it's on top */
+            width: 380px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.3),
+                        0 0 40px rgba(255, 165, 0, 0.1);
+            text-align: center;
+            color: #fff;
+            animation: fadeInLogin 1s ease-out;
+        }
+        
+        
+        @keyframes fadeInLogin {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- TYPOGRAPHY (Remains the same) --- */
+
+        h2 {
+            font-family: 'Lora', serif;
+            font-size: 2.5em;
+            color: #ffcc00;
+            margin-bottom: 10px;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(255, 204, 0, 0.7);
+        }
+        
+        h3 {
+            font-family: 'Cabin', sans-serif;
+            font-size: 1.1em;
+            color: #e0e0e0;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        label {
+            font-family: 'Cabin', sans-serif;
+            font-size: 1em;
+            color: #f0f0f0;
+            display: block;
+            margin-bottom: 5px;
+            text-align: left;
+            font-weight: 400;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            box-sizing: border-box;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #ffaa00;
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #ff8c00, #ff4500);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 700;
+            margin-top: 10px;
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .error {
+            color: #ff6347;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="ember-effect"></div> 
+    <div id="login-box">
+        <h2>The Friendship Logbook</h2>
+        <h3>To cherish what's special forever.</h3>
+        
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Relive Moments</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const emberEffect = document.querySelector('.ember-effect');
+            const emberColors = ['#ff4500', '#ffa500', '#ffcc00', '#ff6347'];
+            
+            function createEmber() {
+                const ember = document.createElement('div');
+                ember.classList.add('ember');
+
+                const size = Math.random() * 8 + 8; // 8px to 16px
+                ember.style.width = `${size}px`;
+                ember.style.height = `${size}px`;
+                ember.style.setProperty('--size', `${size}px`); 
+
+                // Ensure random left position
+                ember.style.left = `${Math.random() * 100}%`;
+
+                // Set ember color for the box-shadow
+                ember.style.setProperty('--ember-color', emberColors[Math.floor(Math.random() * emberColors.length)]);
+                
+                // Faster animation duration
+                const duration = Math.random() * 6 + 3; 
+                ember.style.setProperty('--duration', `${duration}s`);
+                
+                const scale = Math.random() * 0.8 + 0.8;
+                ember.style.setProperty('--scale', scale);
+
+                // Guaranteed high opacity
+                const maxOpacity = Math.random() * 0.3 + 0.6;
+                ember.style.setProperty('--max-opacity', maxOpacity);
+
+
+                emberEffect.appendChild(ember);
+
+                // Remove ember after its animation finishes
+                ember.addEventListener('animationend', () => {
+                    ember.remove();
+                });
+            }
+
+            // High spawn rate
+            setInterval(createEmber, 30);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Friendship Logbook - Campfire Night</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+        
+    <style>
+        /* Import cozy fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Cabin:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
+
+        /* --- THE SCENE SETUP --- */
+        body { 
+            font-family: 'Cabin', sans-serif; 
+            margin: 0; 
+            min-height: 100vh;
+            background-color: #000; /* Black fallback */
+            position: relative;
+            overflow-x: hidden; /* Prevent horizontal scroll from shooting star */
+        }
+        
+        /* The main visual background layer */
+        .background-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Updated to PNG and custom zoom (117vh) */
+            background-image: url("/static/campfire_background.png"); 
+            background-size: auto 117vh; 
+            background-repeat: no-repeat;
+            background-position: center bottom;
+            z-index: 1; 
+        }
+
+        /* --- SMOKE ANIMATION KEYFRAMES (Multiple Puffs) --- */
+        /* --- SMOKE ANIMATION KEYFRAMES (Multiple Puffs - More Visible) --- */
+@keyframes multiple-smoke-rise {
+    0% { transform: translate(0, 0) scale(0.6); opacity: 0; } 
+    /* Increased opacity here for a more visible initial rise */
+    30% { opacity: 0.7; transform: translate(-15px, -80px) scale(1.6); } 
+    60% { opacity: 0.5; transform: translate(20px, -160px) scale(2.2); } 
+    100% { opacity: 0; transform: translate(-5px, -300px) scale(3); } 
+}
+
+/* Base style for all smoke puffs */
+.smoke-puff-base {
+    position: absolute;
+    /* Retained user's change: bottom: 40vh */
+    bottom: 40vh; /* Aligns the start point above the campfire */
+    left: 51%; 
+    width: 20px; 
+    height: 20px; 
+    /* Increased base background opacity from 0.6 to 0.8 */
+    background: rgba(255, 255, 255, 0.8); 
+    border-radius: 50%; 
+    filter: blur(15px); 
+    transform: translateX(-50%);
+    z-index: 2; 
+    pointer-events: none;
+    /* Increased box-shadow opacities (0.5 -> 0.7, 0.4 -> 0.6) for brighter puff shape */
+    box-shadow: 
+        10px -10px 10px 5px rgba(255, 255, 255, 0.7), 
+        -15px 5px 12px 6px rgba(255, 255, 255, 0.6);
+    animation: multiple-smoke-rise 10s infinite ease-out; 
+}
+/* Remaining smoke-puff-N classes are the same as provided */
+.smoke-puff-1 { animation-delay: 0s; }
+.smoke-puff-2 { animation-delay: -3s; left: 52%; opacity: 1.0; }
+.smoke-puff-3 { animation-delay: -6s; left: 50%; opacity: 1.0; }
+.smoke-puff-4 { animation-delay: -9s; left: 51%; opacity: 1.0; }
+
+        /* --- CONTENT OVERLAY (The Logbook itself) --- */
+        .content { 
+            position: relative;
+            z-index: 10; /* Must sit on top of the background */
+            width: 85%;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 30px;
+            /* Low opacity (0.25) and blur(0px) for maximum background visibility */
+            background: rgba(0, 0, 0, 0.25); 
+            backdrop-filter: blur(0px); 
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            color: #f0f0f0; 
+        }
+
+        /* --- HEADER & NAVIGATION STYLES --- */
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2); 
+            padding-bottom: 15px; 
+            margin-bottom: 25px; 
+        }
+        h1 { color: #ffcc00; margin: 0; font-family: 'Lora', serif; font-size: 1.8em; }
+        
+        a { color: #ff6347; text-decoration: none; font-weight: bold; transition: color 0.3s; }
+        a:hover { color: #ffa500; text-decoration: underline; }
+        
+        /* The main action buttons */
+        .nav-buttons a {
+            display: inline-block; 
+            padding: 8px 15px; 
+            border-radius: 4px; 
+            font-weight: 700;
+            margin-left: 10px;
+            text-shadow: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .add-memory-btn { background-color: #28a745; color: white; }
+        .appreciation-btn { background-color: #ff69b4; color: white; }
+        .logout-btn { color: #f0f0f0; } 
+
+
+        /* --- MAP & MEMORY STYLES --- */
+#map { 
+    height: 400px; 
+    width: 100%; 
+    margin-top: 20px; 
+    border-radius: 8px; 
+    margin-bottom: 30px;
+    /* CHANGE: Add a distinct background color for visibility test */
+    background-color: #333333; 
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+        
+        h2, h3 { color: #ffcc00; font-family: 'Lora', serif; border-left: 3px solid #ffaa00; padding-left: 10px; }
+        
+        .memory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .memory-card { 
+            background: rgba(255, 255, 255, 0.1); 
+            padding: 15px; 
+            border-radius: 6px; 
+            box-shadow: 0 0 10px rgba(255, 165, 0, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background-color 0.3s;
+        }
+        .memory-card:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .memory-card h4 { margin-top: 0; color: #ffaa00; font-family: 'Lora', serif; }
+        .memory-card img { max-width: 100%; height: auto; border-radius: 4px; margin-bottom: 10px;}
+        .memory-card p { font-size: 0.95em; color: #ccc; }
+        .memory-card p strong { color: #fff; }
+        
+        .memory-card form button {
+             background: none; 
+             color: #ff6347; 
+             border: none; 
+             padding: 0; 
+             margin: 0; 
+             font-size: 0.9em; 
+             cursor: pointer;
+        }
+
+        /* --- TWINKLING STAR ANIMATION --- */
+        
+    .star {
+    position: absolute;
+    /* Dramatically increased base size from 3px to 5px */
+    width: 5px; 
+    height: 5px;
+    background: #fff;
+    border-radius: 50%;
+    opacity: 0;
+    animation: twinkle 3s infinite alternate;
+    z-index: 2; 
+    /* Increased glow/shadow from 5px to 8px */
+    box-shadow: 0 0 8px #fff;
+}
+
+@keyframes twinkle {
+    /* Increased min opacity (0.7) is good, but let's increase max scale (2.0 -> 3.0) */
+    0% { opacity: 0.7; transform: scale(1.0); }
+    50% { opacity: 1; transform: scale(3.0); } 
+    100% { opacity: 0.7; transform: scale(1.0); }
+}
+
+/* --- SHOOTING STAR ANIMATION (Greatly Increased Size and Glow) --- */
+.shooting-star {
+    position: absolute;
+    /* Increased size from 6px to 8px */
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    /* Dramatically increased glow/shadow for visibility */
+    box-shadow: 0 0 25px #fff, 0 0 10px 5px rgba(255, 255, 255, 0.7); 
+    opacity: 0;
+    z-index: 3;
+}
+
+@keyframes shoot {
+    0% { 
+        opacity: 1; 
+        transform: translate(0, 0) scale(1.2); /* Slightly larger on start */
+    }
+    100% { 
+        opacity: 0; 
+        transform: translate(-150vw, 150vh) scale(0.5); 
+    }
+}
+    </style>
+</head>
+<body>
+    
+    <div class="background-scene">
+        <div class="smoke-puff-base smoke-puff-1"></div>
+        <div class="smoke-puff-base smoke-puff-2"></div>
+        <div class="smoke-puff-base smoke-puff-3"></div>
+        <div class="smoke-puff-base smoke-puff-4"></div>
+
+        <div id="star-container"></div>
+        <div id="shooting-star-container"></div>
+    </div>
+
+    <div class="content">
+        <div class="header">
+            <h1>Welcome, {{ username }}!</h1>
+            <div class="nav-buttons">
+                <a href="{{ url_for('add_memory') }}" class="add-memory-btn">
+                    ➕ Add Memory Pin
+                </a>
+                <a href="{{ url_for('appreciation') }}" class="appreciation-btn">
+                    💖 View Appreciation Log
+                </a>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Log Out</a>
+            </div>
+        </div>
+
+        <h2>Logbook Locations</h2>
+
+        <div id="map"></div>
+
+        <h3>Logged Moments ({{ memories|length }} Total)</h3>
+        {% if memories %}
+            <div class="memory-grid">
+                {% for memory in memories %}
+                <div class="memory-card">
+                    <h4>{{ memory.title }}</h4>
+                    
+                    {% if memory.photo_url %}
+                        <img src="{{ url_for('static', filename=memory.photo_url) }}" 
+                            alt="{{ memory.title }}">
+                    {% endif %}
+                    
+                    <p><strong>Date:</strong> {{ memory.date }}</p>
+                    <p style="font-style: italic;">"{{ memory.story }}"</p>
+                    <p style="font-size: 0.9em; color: #a0a0a0;">
+                        📍 Coordinates: {{ memory.latitude }}, {{ memory.longitude }}
+                    </p>
+                    
+                    <a href="{{ url_for('edit_memory', memory_id=memory.id) }}" style="color: #ffaa00; font-size: 0.9em;">Edit</a> | 
+                    
+                    <form method="POST" action="{{ url_for('delete_memory', memory_id=memory.id) }}" 
+                        style="display: inline;">
+                        <button type="submit" 
+                                onclick="return confirm('Are you sure you want to delete this memory? This cannot be undone.');">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>You haven't logged any shared moments yet! Click the button above to start your adventure.</p>
+        {% endif %}
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20n6sA5K5I/f63Xz9f3xY/4v51Wf6sXp/vL02Kq7KkQ="
+        crossorigin=""></script>
+
+    <script>
+    // --- 1. Map Initialization (Unchanged) ---
+    const map = L.map('map').setView([0, 0], 2); 
+
+// *** REPLACING with the standard, secure OpenStreetMap tile layer ***
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Ensures the map tiles are fetched securely
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+const memories = {{ memories | tojson | safe }}; 
+
+    if (memories.length > 0) {
+        let bounds = [];
+        const editBaseUrl = "{{ url_for('edit_memory', memory_id=0) }}".replace('/0', ''); 
+
+        memories.forEach(memory => {
+            const lat = parseFloat(memory['latitude']); 
+            const lng = parseFloat(memory['longitude']);
+            const id = memory['id']; 
+
+            bounds.push([lat, lng]);
+
+            const editUrl = `${editBaseUrl}/${id}`; 
+            
+            const popupContent = `
+                <h3>${memory['title']}</h3>
+                <p><strong>Date:</strong> ${memory['date']}</p>
+                <p>${memory['story']}</p>
+                <a href="${editUrl}">Edit Memory</a>
+            `;
+
+            L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup(popupContent);
+        });
+        
+        map.fitBounds(bounds, { padding: [50, 50] }); 
+    } else {
+        map.setView([30, -40], 2); 
+    }
+    
+    // --- 2. Twinkling Star Generator (Increased Quantity: 50 -> 150) ---
+const starContainer = document.getElementById('star-container');
+const numStars = 150; // *** CHANGE: Increased from 50 to 150 ***
+
+function createStar() {
+    const star = document.createElement('div');
+    star.classList.add('star');
+    star.style.left = `${Math.random() * 100}%`;
+    
+    // Vertical position restricted to the top 70% (Requested constraint)
+    star.style.top = `${Math.random() * 70}%`; 
+    
+    star.style.animationDelay = `${Math.random() * 3}s`; 
+    starContainer.appendChild(star);
+}
+for (let i = 0; i < numStars; i++) {
+    createStar();
+}
+
+// --- 3. Shooting Star Scheduler (Increased Frequency) ---
+function createShootingStar() {
+    const shootingStar = document.createElement('div');
+    shootingStar.classList.add('shooting-star');
+    
+    // Random start position (top right corner, restricted to top 70vh)
+    shootingStar.style.top = `${Math.random() * 70}vh`; 
+    shootingStar.style.right = `-50px`; 
+    
+    // Random speed for animation
+    const duration = Math.random() * 2 + 1.5; 
+    shootingStar.style.animation = `shoot ${duration}s linear forwards`;
+
+    document.getElementById('shooting-star-container').appendChild(shootingStar);
+    
+    // Remove after animation finishes
+    setTimeout(() => {
+        shootingStar.remove();
+    }, duration * 1000); 
+}
+
+// Schedule the shooting star to appear randomly (Frequent: 3 to 10 seconds)
+function scheduleShootingStar() {
+    // *** CHANGE: Reduced delay from (10s-30s) to (3s-10s) ***
+    const delay = Math.random() * 7000 + 3000; 
+    setTimeout(() => {
+        createShootingStar();
+        scheduleShootingStar(); 
+    }, delay);
+}
+scheduleShootingStar(); // Start the scheduler
+    
+</script>
+</body>
+</html>

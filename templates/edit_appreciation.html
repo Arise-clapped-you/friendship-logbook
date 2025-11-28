@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Appreciation Note</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; }
+        h2 { color: #ff69b4; border-bottom: 2px solid #ff69b4; padding-bottom: 10px; margin-bottom: 20px; }
+        textarea { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; height: 100px; }
+        button { background-color: #ff69b4; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; width: 100%; }
+        .back-link { display: block; text-align: center; margin-top: 15px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>✍️ Edit Appreciation Note</h2>
+        <form method="POST" action="{{ url_for('edit_appreciation', note_id=note.id) }}">
+            <label for="text">Update Your Note:</label>
+            <textarea id="text" name="text" required>{{ note.text }}</textarea>
+            <button type="submit">Save Changes</button>
+        </form>
+        <a href="{{ url_for('appreciation') }}" class="back-link">← Cancel and Go Back</a>
+    </div>
+</body>
+</html>

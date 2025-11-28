@@ -1,0 +1,10 @@
+# .gitignore file
+
+# Ignore the virtual environment folder
+venv/
+
+# Ignore the SQLite database file
+*.db
+
+# IGNORE THE FILE CONTAINING YOUR SECRET KEYS!
+.env
